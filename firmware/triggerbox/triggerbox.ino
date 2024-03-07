@@ -20,6 +20,9 @@ operation. In this firmware, we need to respond to clock requests with
 our current clock value. We use the device's timer1 as our official
 clock.
 
+Forked by Andrew J Spence 2024-03-07 to add support for detecting
+infra-red breakbeam breaks on a digital pin and sending a message
+to the PC host.
  */
 
 #include <Arduino.h>
@@ -362,10 +365,16 @@ struct timed_sample {
 // Pin numbers -----------------------------------------------------------------
 const unsigned short TrigPin = 9;
 const unsigned short LEDPin = 2;
+const unsigned short irBeamPin = 3;
+bool                 irTrigMode = false;
+bool                 beamState;
+bool                 lastBeamState;
+unsigned long        lastIRTrigTime = 0;
 #ifdef WITH_AOUT
 const unsigned short AOUT_CS = 10;
 const unsigned short AOUT_LDAC = 7;
 #endif
+
 
 // Global variables ------------------------------------------------------------
 volatile pulsenumber_dtype pulsenumber=0;
@@ -427,7 +436,12 @@ void setup() {
 
     pinMode(LEDPin, OUTPUT);
     pinMode(TrigPin, OUTPUT);
-
+    // IR Breakbeam from Adafruit https://learn.adafruit.com/ir-breakbeam-sensors/arduino
+    // Open collector, so need to use the Arduino built in pull-up resistor:
+    // initialize the sensor pin as an input:
+    pinMode(irBeamPin, INPUT);     
+    digitalWrite(irBeamPin, HIGH); // turn on the pullup
+    
     // start serial port at 115200 bps:
     Serial.begin(115200);
 
@@ -490,7 +504,31 @@ static inline void send_data(const struct timed_sample samp, const char header) 
 }
 
 // Standard Arduino loop function. This gets repeatedly called at high rate ----
-void loop() {
+void loop() {    
+    if(irTrigMode) {
+        // We are in IR breakbeam detection and triggering mode:
+        // We only want to trigger if: 1) we go from high to low (something breaks beam), and 2) it has been >20ms since last trigger sent.
+        // Camera dump code will be responsible for restricting how fast it dumps video.
+        beamState = digitalRead(irBeamPin);
+        if( !beamState && (lastBeamState) && ((millis()-lastIRTrigTime)>20) ) {
+            // Broken - we went from high to low and it has been long enough: trigger
+            // What if it hasn't been enough time? Fine. It will record the new high state and continue.
+            // And it won't trigger until you unbreak the beam and come back in, which is
+            // the desired behavior. EG we dont want it to trigger after every 20ms of holding the beam broken. Or do we?
+            
+            // Send ir break trig message here:
+            static struct timed_sample ir_trig;
+            ir_trig.value = 1;
+            uint8_t SaveSREG_ = SREG;   // save interrupt flag
+            cli(); // disable interrupts
+            ir_trig.ticks = TCNT1;
+            SREG = SaveSREG_; // restore interrupt flags
+            send_data(ir_trig,'I');
+            // Save this time as the last time we triggered
+            lastIRTrigTime = millis();
+        }
+        lastBeamState = beamState;
+    }
     if (Serial.available() >= 2) {
         static char cmd;
         static char value;
@@ -606,6 +644,16 @@ void loop() {
 
         } else if (cmd=='N') {
             udev.process(cmd, value);
+        } else if (cmd=='I') {
+            // Toggle infra-red breakbeam sending triggers mode:
+            irTrigMode = !irTrigMode;
+            if(irTrigMode) {
+                // When we switch on this mode, read the status of the sensor
+                // and set the last to the same. That way we dont automatically
+                // inadvertently trigger every time we toggle into the mode.
+                beamState = digitalRead(irBeamPin);
+                lastBeamState = beamState;
+            }
         }
 
     }
