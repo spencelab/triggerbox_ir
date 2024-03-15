@@ -186,8 +186,13 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI):
 
 if __name__=='__main__':
     rospy.init_node('triggerbox_host')
-    tb = TriggerboxHost('/dev/ttyUSB0')
+    parser = argparse.ArgumentParser('triggerbox_host')
+    parser.add_argument('--device', '-d', dest='device')
+    args = parser.parse_args()
+    if args.device:
+        tb = TriggerboxHost(args.device)
+    else:
+        tb = TriggerboxHost('/dev/ttyUSB0')
     tb.set_frames_per_second_blocking(25.0)
     tb.wait_for_estimate()
     rospy.spin()
-
