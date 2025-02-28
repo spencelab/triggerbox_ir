@@ -72,3 +72,21 @@ void loop(){
   lastState = sensorState;
 }
 ```
+
+## Servo
+
+PWM Pins:
+UNO (R3 and earlier), Nano, Mini
+3, 5, 6, 9, 10, 11
+
+3 wires...
+PWR, GND, PWM...
+
+Total pins if shared:
+
+PWR, GND, IRSENSOR, SERVO
+
+But probably want servo on a separate lead really...
+3 pin to IR sensor, 3 pin to servo?
+Split the PWR and GND on IR SENSOR?
+Can use a BNC wired to power for the IR emitter...
