@@ -3,6 +3,11 @@
 Functionality: when the IR beam is broken, a servo swivels slightly to make it harder for rat to grasp. A "reset" button on the box moves the servo back to center and re-arms the sensing.
 
 # Wiring
+FINAL:
+9: CAMTRIG OUTPUT
+13: LED OUTPUT - TO BUTTON LED
+4: IR SENSOR INPUT
+5: PWM SERVO OUTPUT
 
 The camera trigger pin is 9
 
