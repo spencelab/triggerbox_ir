@@ -7,6 +7,7 @@ Functionality: when the IR beam is broken, a servo swivels slightly to make it h
 FINAL:
 9: CAMTRIG OUTPUT
 13: LED OUTPUT - TO BUTTON LED
+12: Buttom
 4: IR SENSOR INPUT
 5: PWM SERVO OUTPUT
 ```
