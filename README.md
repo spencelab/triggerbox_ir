@@ -10,6 +10,12 @@ FINAL:
 12: Buttom
 4: IR SENSOR INPUT
 5: PWM SERVO OUTPUT
+
+3 wire cabesl to servo and sesnor:
+
+Yelleo/breeen: GROUND
+Blue: signal; pint 5PWM for servo pin 4 digital input for IR
+Brown: 5V
 ```
 The camera trigger pin is 9
 
